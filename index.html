@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATOMS — Autonomous Factory for Space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #050505;
+    --off-white: #e8e2d6;
+    --sand: #b89c72;
+    --sand-light: #d4b98a;
+    --sand-dark: #8a6f4a;
+    --dim: #2a2520;
+    --text-muted: #6b6155;
+    --border: rgba(184,156,114,0.18);
+    --border-strong: rgba(184,156,114,0.35);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--off-white);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 28px 48px;
+    background: linear-gradient(to bottom, rgba(5,5,5,0.95) 0%, transparent 100%);
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.25em;
+    color: var(--off-white);
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 40px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(232,226,214,0.6);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover { color: var(--sand); }
+
+  /* ── HERO ── */
+  #hero {
+    position: relative;
+    height: 100vh;
+    min-height: 700px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(5,5,5,0.3) 0%, rgba(5,5,5,0.0) 40%, rgba(5,5,5,0.85) 100%),
+      linear-gradient(135deg, #1a120a 0%, #2d1f0e 35%, #3d2a10 50%, #1a120a 100%);
+    overflow: hidden;
+  }
+
+  /* Aerial terrain SVG texture */
+  .hero-terrain {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.55;
+    filter: sepia(0.7) contrast(1.2);
+  }
+
+  .hero-scan-lines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 0 48px 80px;
+    max-width: 900px;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sand);
+    border: 1px solid var(--border-strong);
+    padding: 6px 14px;
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.3s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 110px);
+    line-height: 0.92;
+    letter-spacing: 0.02em;
+    color: var(--off-white);
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeUp 0.9s 0.5s forwards;
+  }
+
+  .hero-title span { color: var(--sand); }
+
+  .hero-sub {
+    font-size: clamp(14px, 1.6vw, 17px);
+    font-weight: 300;
+    line-height: 1.7;
+    color: rgba(232,226,214,0.7);
+    max-width: 560px;
+    margin-bottom: 44px;
+    opacity: 0;
+    animation: fadeUp 0.9s 0.7s forwards;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.9s 0.9s forwards;
+  }
+
+  .btn-primary {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--black);
+    background: var(--sand);
+    border: none;
+    padding: 14px 28px;
+    cursor: crosshair;
+    text-decoration: none;
+    transition: background 0.3s, transform 0.2s;
+    display: inline-block;
+  }
+
+  .btn-primary:hover { background: var(--sand-light); transform: translateY(-2px); }
+
+  .btn-ghost {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--off-white);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    padding: 14px 28px;
+    cursor: crosshair;
+    text-decoration: none;
+    transition: border-color 0.3s, color 0.3s, transform 0.2s;
+    display: inline-block;
+  }
+
+  .btn-ghost:hover { border-color: var(--sand); color: var(--sand); transform: translateY(-2px); }
+
+  /* ── SCROLL INDICATOR ── */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    right: 48px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeIn 1s 1.4s forwards;
+  }
+
+  .scroll-indicator span {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--sand-dark), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { transform: scaleY(1); opacity: 0.5; }
+    50% { transform: scaleY(0.6); opacity: 1; }
+  }
+
+  /* ── SECTION COMMONS ── */
+  section {
+    padding: 120px 48px;
+    position: relative;
+  }
+
+  .section-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--sand);
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 5vw, 72px);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: var(--off-white);
+    margin-bottom: 32px;
+  }
+
+  .section-title span { color: var(--sand); }
+
+  .section-body {
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.8;
+    color: rgba(232,226,214,0.65);
+    max-width: 620px;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 0 48px;
+    width: calc(100% - 96px);
+  }
+
+  /* ── BUILT SECTION ── */
+  #built {
+    background: var(--black);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .built-left { }
+
+  .built-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .built-item {
+    padding: 32px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    transition: border-color 0.3s;
+  }
+
+  .built-item:first-child { border-top: 1px solid var(--border); }
+  .built-item:hover { border-bottom-color: var(--sand-dark); }
+
+  .built-icon {
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--sand);
+  }
+
+  .built-icon svg { width: 20px; height: 20px; }
+
+  .built-item-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--off-white);
+    margin-bottom: 6px;
+  }
+
+  .built-item-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── MISSION ── */
+  #mission {
+    background: linear-gradient(160deg, #0a0805 0%, #120e08 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #mission::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(184,156,114,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .mission-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+    margin-top: 64px;
+  }
+
+  .mission-stat {
+    padding: 40px;
+    border: 1px solid var(--border);
+    position: relative;
+    transition: border-color 0.4s, transform 0.3s;
+  }
+
+  .mission-stat:hover { border-color: var(--sand-dark); transform: translateY(-4px); }
+
+  .mission-stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 40px; height: 2px;
+    background: var(--sand);
+  }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    color: var(--sand);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .stat-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(232,226,214,0.55);
+  }
+
+  /* ── WHY NOW ── */
+  #why-now {
+    background: var(--black);
+  }
+
+  .why-now-layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 100px;
+    align-items: start;
+    margin-top: 24px;
+  }
+
+  .why-now-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 6vw, 88px);
+    line-height: 0.95;
+    letter-spacing: 0.02em;
+    color: rgba(232,226,214,0.08);
+    user-select: none;
+    position: relative;
+  }
+
+  .why-now-big span {
+    display: block;
+    color: var(--sand);
+    opacity: 0.9;
+  }
+
+  .why-points {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    padding-top: 8px;
+  }
+
+  .why-point {
+    padding-left: 20px;
+    border-left: 2px solid var(--border);
+    transition: border-color 0.3s;
+  }
+
+  .why-point:hover { border-left-color: var(--sand); }
+
+  .why-point-title {
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--off-white);
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .why-point p {
+    font-size: 14px;
+    line-height: 1.75;
+    color: rgba(232,226,214,0.55);
+  }
+
+  /* ── LAUNCH WINDOW ── */
+  #launch-window {
+    background: linear-gradient(160deg, #0a0805 0%, #0f0c07 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .window-ticker {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 80px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .window-ticker::before, .window-ticker::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 60px;
+    z-index: 2;
+  }
+
+  .window-ticker::before { left: 0; background: linear-gradient(to right, #0a0805, transparent); }
+  .window-ticker::after { right: 0; background: linear-gradient(to left, #0a0805, transparent); }
+
+  .ticker-track {
+    display: flex;
+    gap: 60px;
+    animation: ticker 20s linear infinite;
+    white-space: nowrap;
+  }
+
+  .ticker-item {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--sand-dark);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .window-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .countdown-block {
+    padding: 48px;
+    border: 1px solid var(--border);
+    position: relative;
+    background: rgba(255,255,255,0.01);
+  }
+
+  .countdown-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 24px;
+  }
+
+  .countdown-display {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .countdown-unit {
+    text-align: center;
+  }
+
+  .countdown-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--off-white);
+    line-height: 1;
+    display: block;
+  }
+
+  .countdown-unit-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .countdown-note {
+    font-size: 12px;
+    color: rgba(232,226,214,0.4);
+    line-height: 1.6;
+  }
+
+  .countdown-note strong { color: var(--sand); font-weight: 400; }
+
+  /* ── MILESTONE ── */
+  #milestone {
+    background: var(--black);
+  }
+
+  .milestone-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    margin-top: 16px;
+  }
+
+  .milestone-visual {
+    position: relative;
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .milestone-visual::before {
+    content: '01';
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 240px;
+    color: rgba(184,156,114,0.04);
+    position: absolute;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .milestone-rocket {
+    position: relative;
+    z-index: 1;
+  }
+
+  .milestone-rocket svg {
+    width: 80px;
+    height: 80px;
+    color: var(--sand);
+    animation: rocketFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes rocketFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .milestone-badge {
+    position: absolute;
+    bottom: 24px; right: 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--sand);
+    border: 1px solid var(--border-strong);
+    padding: 8px 12px;
+    background: rgba(5,5,5,0.8);
+  }
+
+  .milestone-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 40px;
+  }
+
+  .milestone-step {
+    display: flex;
+    gap: 20px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--sand);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .step-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(232,226,214,0.6);
+  }
+
+  .step-text strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--off-white);
+    margin-bottom: 4px;
+  }
+
+  /* ── VISION SECTION ── */
+  #vision-full {
+    background: linear-gradient(160deg, #0d0906 0%, #0a0805 100%);
+    text-align: center;
+    padding: 160px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #vision-full::before {
+    content: 'ATOMS';
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28vw;
+    color: rgba(184,156,114,0.025);
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  .vision-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 32px;
+    display: block;
+    position: relative;
+    z-index: 1;
+  }
+
+  .vision-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 90px);
+    letter-spacing: 0.03em;
+    line-height: 1;
+    color: var(--off-white);
+    max-width: 900px;
+    margin: 0 auto 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .vision-headline span { color: var(--sand); }
+
+  .vision-body {
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.9;
+    color: rgba(232,226,214,0.55);
+    max-width: 580px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── CLOSING CTA ── */
+  #closing {
+    background: var(--black);
+    padding: 140px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #closing::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .closing-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: end;
+  }
+
+  .closing-text .section-title {
+    margin-bottom: 20px;
+  }
+
+  .closing-manifesto {
+    font-size: 16px;
+    line-height: 1.9;
+    color: rgba(232,226,214,0.55);
+    margin-bottom: 48px;
+  }
+
+  .closing-manifesto strong {
+    color: var(--off-white);
+    font-weight: 400;
+  }
+
+  .closing-ctas {
+    display: flex;
+    gap: 16px;
+  }
+
+  .closing-info {
+    padding: 40px;
+    border: 1px solid var(--border);
+    position: relative;
+    align-self: start;
+    margin-top: 48px;
+  }
+
+  .closing-info::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 40px; height: 2px;
+    background: var(--sand);
+  }
+
+  .info-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .info-address {
+    font-size: 13px;
+    line-height: 2;
+    color: rgba(232,226,214,0.5);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--black);
+    padding: 40px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.3em;
+    color: rgba(232,226,214,0.4);
+  }
+
+  .footer-copy {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── HORIZONTAL RULE ── */
+  .hr-line {
+    height: 1px;
+    background: var(--border);
+    margin: 0 48px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 20px 24px; }
+    section { padding: 80px 24px; }
+    .hr-line { margin: 0 24px; }
+    #built, .mission-grid, .why-now-layout, .window-content, .milestone-layout, .closing-layout {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+    .why-now-layout { grid-template-columns: 1fr; }
+    .hero-content { padding: 0 24px 60px; }
+    .scroll-indicator { display: none; }
+    footer { flex-direction: column; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">ATOMS</a>
+  <ul class="nav-links">
+    <li><a href="#mission">Vision</a></li>
+    <li><a href="#milestone">Milestone</a></li>
+    <li><a href="#closing">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg">
+    <!-- SVG terrain texture -->
+    <svg class="hero-terrain" viewBox="0 0 1400 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="rough">
+          <feTurbulence type="turbulence" baseFrequency="0.012 0.02" numOctaves="6" seed="5" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="28" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="g"/>
+          <feColorMatrix type="saturate" values="0" in="g" result="gs"/>
+          <feBlend in="SourceGraphic" in2="gs" mode="multiply"/>
+        </filter>
+        <linearGradient id="tg1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#5c3d1a;stop-opacity:1"/>
+          <stop offset="40%" style="stop-color:#8c6230;stop-opacity:1"/>
+          <stop offset="70%" style="stop-color:#6b4a1e;stop-opacity:1"/>
+          <stop offset="100%" style="stop-color:#3d2508;stop-opacity:1"/>
+        </linearGradient>
+        <linearGradient id="tg2" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#2a1a08;stop-opacity:0.8"/>
+          <stop offset="100%" style="stop-color:#8c6a30;stop-opacity:0.4"/>
+        </linearGradient>
+      </defs>
+      <rect width="1400" height="700" fill="url(#tg1)"/>
+      <!-- River/road patterns -->
+      <g filter="url(#rough)" opacity="0.7">
+        <path d="M200,0 C240,120 180,200 220,350 C260,500 300,580 280,700" stroke="#2a1505" stroke-width="28" fill="none" opacity="0.6"/>
+        <path d="M500,0 C520,80 480,180 510,300 C540,420 500,560 520,700" stroke="#1a0d03" stroke-width="18" fill="none" opacity="0.5"/>
+        <path d="M800,50 C750,150 820,280 780,400 C740,520 800,620 760,700" stroke="#2a1505" stroke-width="22" fill="none" opacity="0.6"/>
+        <path d="M1100,0 C1080,100 1120,220 1090,380 C1060,520 1100,610 1080,700" stroke="#1a0d03" stroke-width="15" fill="none" opacity="0.45"/>
+        <!-- Cross roads -->
+        <path d="M0,230 C200,220 400,240 600,225 C800,210 1000,235 1200,220 C1300,215 1380,225 1400,222" stroke="#1a0d03" stroke-width="20" fill="none" opacity="0.5"/>
+        <path d="M0,480 C300,470 500,490 700,475 C900,460 1100,480 1400,470" stroke="#2a1505" stroke-width="14" fill="none" opacity="0.4"/>
+      </g>
+      <!-- Terrain patches -->
+      <ellipse cx="350" cy="180" rx="200" ry="100" fill="#6b4820" opacity="0.3" filter="url(#rough)"/>
+      <ellipse cx="900" cy="420" rx="280" ry="140" fill="#7a5525" opacity="0.25" filter="url(#rough)"/>
+      <ellipse cx="1200" cy="150" rx="160" ry="90" fill="#5c3d18" opacity="0.3" filter="url(#rough)"/>
+      <rect width="1400" height="700" fill="url(#tg2)" opacity="0.3"/>
+    </svg>
+    <div class="hero-scan-lines"></div>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-tag">Autonomous Industrial Systems</div>
+    <h1 class="hero-title">
+      Building the<br>
+      <span>Autonomous</span><br>
+      Factory for Space
+    </h1>
+    <p class="hero-sub">Robots, humanoids, and AI working together to construct the future of launch infrastructure. Our vision: a fully autonomous Starbase Factory.</p>
+    <div class="hero-ctas">
+      <a href="#built" class="btn-primary">See What We're Building</a>
+      <a href="#closing" class="btn-ghost">Talk to Us</a>
+    </div>
+  </div>
+
+  <div class="scroll-indicator">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<div class="hr-line"></div>
+
+<!-- WHAT WE'VE BUILT -->
+<section id="built">
+  <div class="built-left reveal">
+    <span class="section-label">What We Have Built</span>
+    <h2 class="section-title">Robotics + AI,<br>working as <span>one system</span></h2>
+    <p class="section-body">We have assembled the foundation of an autonomous industrial workforce — robots and AI that think, move, and build in coordination. Not in isolation. Together.</p>
+  </div>
+  <div class="built-right reveal" style="transition-delay:0.15s">
+    <div class="built-item">
+      <div class="built-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="14" width="4" height="8" rx="1"/><rect x="10" y="10" width="4" height="12" rx="1"/>
+          <rect x="18" y="6" width="4" height="16" rx="1"/>
+          <path d="M4 14V8a2 2 0 012-2h4M12 10V6a2 2 0 012-2h4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="built-item-title">Road Logistics Robot</div>
+        <div class="built-item-desc">Purpose-built for autonomous transport and materials handling across industrial environments and launch facilities.</div>
+      </div>
+    </div>
+    <div class="built-item">
+      <div class="built-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="6" r="3"/><path d="M12 9v6M8 21v-3a4 4 0 018 0v3"/>
+          <path d="M5 12l3 3M19 12l-3 3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="built-item-title">Humanoid Robot</div>
+        <div class="built-item-desc">A general-purpose humanoid capable of complex assembly tasks, engineered for the demanding tolerances of aerospace manufacturing.</div>
+      </div>
+    </div>
+    <div class="built-item">
+      <div class="built-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="built-item-title">AI Coordination System</div>
+        <div class="built-item-desc">An AI that orchestrates both robots in real-time — unified perception, planning, and execution across the entire autonomous workforce.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="hr-line"></div>
+
+<!-- THE MISSION -->
+<section id="mission">
+  <div class="reveal">
+    <span class="section-label">The Mission</span>
+    <h2 class="section-title">A Fully <span>Autonomous</span><br>Starbase Factory</h2>
+    <p class="section-body">We are building toward a future where large rockets, launch pads, and space infrastructure are constructed, managed, and scaled entirely by robots and AI — no longer bottlenecked by human coordination, labor constraints, or slow construction cycles.</p>
+  </div>
+  <div class="mission-grid">
+    <div class="mission-stat reveal" style="transition-delay:0.1s">
+      <div class="stat-num">$5–10B</div>
+      <div class="stat-label">Development Cost / Starship</div>
+      <div class="stat-desc">Building the next generation of launch systems at current efficiency is harder, slower, and far more capital-intensive than it needs to be.</div>
+    </div>
+    <div class="mission-stat reveal" style="transition-delay:0.2s">
+      <div class="stat-num">10×</div>
+      <div class="stat-label">Target Efficiency Gain</div>
+      <div class="stat-desc">By automating construction, logistics, and coordination, we believe it is possible to dramatically reduce cost and time required to build large-scale launch systems.</div>
+    </div>
+    <div class="mission-stat reveal" style="transition-delay:0.3s">
+      <div class="stat-num">∞</div>
+      <div class="stat-label">24/7 Autonomous Output</div>
+      <div class="stat-desc">Autonomous factories do not sleep, do not fatigue, and do not require coordination overhead. Factory output becomes an always-on capability.</div>
+    </div>
+    <div class="mission-stat reveal" style="transition-delay:0.4s">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Core Systems Built</div>
+      <div class="stat-desc">A logistics robot, a humanoid robot, and a unified AI coordination system — the three pillars of an autonomous industrial workforce for space manufacturing.</div>
+    </div>
+  </div>
+</section>
+
+<div class="hr-line"></div>
+
+<!-- WHY NOW -->
+<section id="why-now">
+  <span class="section-label reveal">Why Now</span>
+  <h2 class="section-title reveal">Because the economics<br>of space <span>demand it</span></h2>
+  <div class="why-now-layout">
+    <div class="why-now-big reveal" aria-hidden="true">
+      WHY<br><span>NOW</span>
+    </div>
+    <div class="why-points">
+      <div class="why-point reveal" style="transition-delay:0.1s">
+        <div class="why-point-title">Launch vehicles are extraordinarily expensive to build</div>
+        <p>The development cost of Starship alone is estimated at $5–10 billion. Without major leaps in efficiency, developing the next generation becomes harder and far more capital-intensive.</p>
+      </div>
+      <div class="why-point reveal" style="transition-delay:0.2s">
+        <div class="why-point-title">AI and robotics can change the equation</div>
+        <p>By automating construction, logistics, and coordination across the full factory stack, we believe it is possible to improve efficiency by orders of magnitude and dramatically reduce cost and time.</p>
+      </div>
+      <div class="why-point reveal" style="transition-delay:0.3s">
+        <div class="why-point-title">The technology is ready — the factories are not</div>
+        <p>The convergence of capable humanoids, autonomous logistics, and coordinating AI has arrived. What hasn't arrived yet is the systems layer that ties them together for industrial-scale output.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="hr-line"></div>
+
+<!-- LAUNCH WINDOW -->
+<section id="launch-window">
+  <div class="window-ticker">
+    <div class="ticker-track">
+      <span class="ticker-item">Mars Launch Window 2027</span>
+      <span class="ticker-item">◆</span>
+      <span class="ticker-item">Next Window 2029</span>
+      <span class="ticker-item">◆</span>
+      <span class="ticker-item">Launch Windows Do Not Wait</span>
+      <span class="ticker-item">◆</span>
+      <span class="ticker-item">Autonomous Factories</span>
+      <span class="ticker-item">◆</span>
+      <span class="ticker-item">Mars Launch Window 2027</span>
+      <span class="ticker-item">◆</span>
+      <span class="ticker-item">Next Window 2029</span>
+      <span class="ticker-item">◆</span>
+      <span class="ticker-item">Launch Windows Do Not Wait</span>
+      <span class="ticker-item">◆</span>
+      <span class="ticker-item">Autonomous Factories</span>
+      <span class="ticker-item">◆</span>
+    </div>
+  </div>
+
+  <div class="window-content">
+    <div class="reveal">
+      <span class="section-label">Why This Matters</span>
+      <h2 class="section-title">Launch windows<br>do not <span>wait</span></h2>
+      <p class="section-body" style="margin-bottom: 24px;">Space development is not only expensive — it is time-sensitive. For interplanetary missions, launch windows are limited and precisely timed.</p>
+      <p class="section-body">If a major Mars launch window is missed in early 2027, the next opportunity does not arrive until early 2029. A two-year delay is unacceptable for the future of space civilization. We believe autonomous factories will make sure humanity never misses critical launch windows simply because we could not build fast enough.</p>
+    </div>
+    <div class="countdown-block reveal" style="transition-delay:0.2s">
+      <div class="countdown-label">Mars Launch Window — Early 2027</div>
+      <div class="countdown-display" id="countdown">
+        <div class="countdown-unit">
+          <span class="countdown-num" id="cd-days">—</span>
+          <span class="countdown-unit-label">Days</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-num" id="cd-hours">—</span>
+          <span class="countdown-unit-label">Hours</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-num" id="cd-mins">—</span>
+          <span class="countdown-unit-label">Mins</span>
+        </div>
+        <div class="countdown-unit">
+          <span class="countdown-num" id="cd-secs">—</span>
+          <span class="countdown-unit-label">Secs</span>
+        </div>
+      </div>
+      <p class="countdown-note">Until <strong>Mars launch window opens</strong>. Miss it, and humanity waits until <strong>2029</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="hr-line"></div>
+
+<!-- MILESTONE -->
+<section id="milestone">
+  <div class="milestone-layout">
+    <div>
+      <span class="section-label reveal">Our First Milestone</span>
+      <h2 class="section-title reveal">Demonstrate robots<br><span>building a rocket</span></h2>
+      <p class="section-body reveal" style="margin-bottom:40px;">Every large vision starts with a clear proof point. Our first milestone as a startup is to demonstrate robots building a small model rocket — the first step toward proving that coordinated robots and AI can handle real-world assembly tasks that scale to launch infrastructure and beyond.</p>
+      <div class="milestone-steps reveal">
+        <div class="milestone-step">
+          <span class="step-num">→ 01</span>
+          <div class="step-text">
+            <strong>Robot-built model rocket</strong>
+            Coordinated humanoid and logistics robot assemble a small-scale rocket from components. First proof of real-world assembly.
+          </div>
+        </div>
+        <div class="milestone-step">
+          <span class="step-num">→ 02</span>
+          <div class="step-text">
+            <strong>Full factory prototype</strong>
+            Autonomous cell capable of iterative, uninterrupted production cycles without human intervention.
+          </div>
+        </div>
+        <div class="milestone-step">
+          <span class="step-num">→ 03</span>
+          <div class="step-text">
+            <strong>Starbase-scale deployment</strong>
+            Launch infrastructure construction, managed and operated by autonomous systems.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="milestone-visual reveal" style="transition-delay:0.2s">
+      <div class="milestone-rocket">
+        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+          <path d="M40 8 C40 8 52 20 52 38 L52 52 L28 52 L28 38 C28 20 40 8 40 8Z" stroke-linejoin="round"/>
+          <path d="M28 48 L20 58 L28 55" stroke-linejoin="round"/>
+          <path d="M52 48 L60 58 L52 55" stroke-linejoin="round"/>
+          <rect x="35" y="52" width="10" height="12" rx="2"/>
+          <circle cx="40" cy="30" r="5"/>
+          <path d="M38 68 Q40 72 42 68" stroke-width="1" opacity="0.4"/>
+          <path d="M36 66 Q40 74 44 66" stroke-width="1" opacity="0.25"/>
+        </svg>
+      </div>
+      <div class="milestone-badge">Milestone 01 — In Progress</div>
+    </div>
+  </div>
+</section>
+
+<div class="hr-line"></div>
+
+<!-- VISION -->
+<section id="vision-full">
+  <span class="vision-eyebrow reveal">Vision</span>
+  <h2 class="vision-headline reveal">From one robot-built rocket<br>to <span>autonomous space infrastructure</span></h2>
+  <p class="vision-body reveal">Today, the goal is a working demonstration. Tomorrow, it is autonomous manufacturing for the space age. We are building the systems that turn factory construction, rocket infrastructure, and launch preparation into an always-on autonomous capability.</p>
+</section>
+
+<div class="hr-line"></div>
+
+<!-- CLOSING CTA -->
+<section id="closing">
+  <div class="closing-layout">
+    <div class="closing-text reveal">
+      <span class="section-label">The Future</span>
+      <h2 class="section-title">The future of space will not be <span>built manually.</span></h2>
+      <p class="closing-manifesto">
+        <strong>It will be built by autonomous systems.</strong><br><br>
+        We are building the systems that can turn factory construction, rocket infrastructure, and launch preparation into an always-on autonomous capability.<br><br>
+        And we're starting now.
+      </p>
+      <div class="closing-ctas">
+        <a href="mailto:hello@atoms.ai" class="btn-primary">Partner With Us</a>
+        <a href="#built" class="btn-ghost">Follow Our Progress</a>
+      </div>
+    </div>
+    <div class="reveal" style="transition-delay:0.2s">
+      <div class="closing-info">
+        <span class="info-label">Headquarters</span>
+        <div class="info-address">
+          8-111, 78 SW 7th Street<br>
+          Brickell City Centre<br>
+          Miami, Florida 33130<br>
+          United States
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">ATOMS</div>
+  <div class="footer-copy">© 2026 Atoms. Physical automation to transform industry and move the world.</div>
+</footer>
+
+<script>
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => observer.observe(r));
+
+  // Mars launch window countdown — targeting Jan 1, 2027
+  function updateCountdown() {
+    const target = new Date('2027-01-10T00:00:00Z').getTime();
+    const now = Date.now();
+    const diff = target - now;
+    if (diff <= 0) {
+      document.getElementById('cd-days').textContent = '00';
+      document.getElementById('cd-hours').textContent = '00';
+      document.getElementById('cd-mins').textContent = '00';
+      document.getElementById('cd-secs').textContent = '00';
+      return;
+    }
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-days').textContent = String(days).padStart(2,'0');
+    document.getElementById('cd-hours').textContent = String(hours).padStart(2,'0');
+    document.getElementById('cd-mins').textContent = String(mins).padStart(2,'0');
+    document.getElementById('cd-secs').textContent = String(secs).padStart(2,'0');
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // Smooth nav highlight
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 200) current = s.id;
+    });
+    navLinks.forEach(l => {
+      l.style.color = l.getAttribute('href') === '#' + current
+        ? 'var(--sand)'
+        : 'rgba(232,226,214,0.6)';
+    });
+  }, { passive: true });
+</script>
+</body>
+</html>
